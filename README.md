@@ -12,6 +12,10 @@ concept](https://github.com/google/guava/wiki/EventBusExplained) in
 > is not a general-purpose publish-subscribe system, nor is it intended for
 > interprocess communication.
 
+Caution: there are downsides to every pattern or idiom. EventBuses are no
+different. [Read about some of the down-sides and alternatives](http://endlesswhileloop.com/blog/2015/06/11/stop-using-event-buses/)
+and really think about if this is an approach you want to adopt.
+
 ## Features
 
 This library is fairly small and being header-only should be easy to integrate
@@ -114,9 +118,23 @@ Note with the above example that _only_ the handler for my_non_polymorphic_event
 will fire because the inheritance relationship was not established via
 mpm::polymorphic_event.
 
+## Building
+
+There's really no build needed as this is a header-only library, however if you
+want to run the unit tests or generate docs you can use the cmake build. To
+perform an out-of-tree build
+
+    $ cd /tmp # or wherever
+    $ mkdir eventbus-debug && cd $_
+    $ cmake -DCMAKE_BUILD_TYPE=debug /path/to/eventbus/repository
+    $ make && make test
+    $ make docs # generates doxygen documentation under /tmp/eventbus-debug/docs
+
 ## TODO
 - As it stands, publishing events from within event handlers is allowed. It's
   not clear that this is good.
 - Implement an asynchronous publication proxy
 - Maybe allow non-noexcept subscribers but unsubscribe them if they throw?
 - Document Event and EventHandler concepts
+- Pull leftright as an external project rather than embedding it under
+  thirdparty/
