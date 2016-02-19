@@ -10,6 +10,49 @@
 
 namespace mpm
 {
+    //! \defgroup Concepts
+    //! Concept is a term that describes a named set of requirements for a type
+
+    //! \defgroup Event
+    //! \ingroup Concepts
+    //! \{
+    //!
+    //! An instance of any class type can be published as an event. This
+    //! definition precludes the publication of (for example) an int.
+    //!
+    //! \par Requirements
+    //! Given:\n
+    //! E, an implementation of the Event concept
+    //!
+    //! |Expression                      | Requirements           | Return type        |
+    //! |:-------------------------------|:-----------------------|:-------------------|
+    //! |std::is_class<E>::value == true | E must be a class type | bool, must be true |
+    //! \}
+
+    //! \defgroup EventHandler
+    //! \ingroup Concepts
+    //! \{
+    //!
+    //! A Callable that can be invoked to handle an instance of Event.
+    //! Callable's INVOKE operation must be noexcept.
+    //!
+    //! \par Extends
+    //! Callable
+    //!
+    //! \par Requirements
+    //! Given:\n
+    //! E an implementation of the Event concept,
+    //! e and instance of E,
+    //! H an implementation of the EventHandler concept handling events of type E,
+    //! h an instance of H
+    //!
+    //! |Expression                      | Requirements           |
+    //! |:-------------------------------|:-----------------------|
+    //! |h(e)                            | well-formed            |
+    //! |noexcept(h(e)) == true          | h(e) must be noexcept  |
+    //! \}
+
+
     namespace detail
     {
         //! Holds the subscriber event type and the handler instance

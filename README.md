@@ -135,6 +135,5 @@ perform an out-of-tree build
   not clear that this is good.
 - Implement an asynchronous publication proxy
 - Maybe allow non-noexcept subscribers but unsubscribe them if they throw?
-- Document Event and EventHandler concepts
 - Pull leftright as an external project rather than embedding it under
   thirdparty/
