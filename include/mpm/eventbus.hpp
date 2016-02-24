@@ -58,13 +58,13 @@ namespace mpm
         //! Holds the subscriber event type and the handler instance
         //! in a type-erased manner so that they can be put into a
         //! homogeneous container (e.g. the std::unordered_multimap as below)
-        class type_erased_subscriber
+        class subscription
         {
           public:
             using id_t = std::intptr_t;
 
             template <typename E, typename H, typename Alloc>
-            type_erased_subscriber(const H& handler, const Alloc& alloc, E*)
+            subscription(const H& handler, const Alloc& alloc, E*)
                 : m_self(std::allocate_shared<model<E, H>>(alloc, handler))
             {
             }
@@ -139,13 +139,13 @@ namespace mpm
             {
             }
 
-            cookie(type_erased_subscriber::id_t _id, std::type_index _ti)
+            cookie(subscription::id_t _id, std::type_index _ti)
                 : id(_id)
                 , ti(_ti)
             {
             }
 
-            type_erased_subscriber::id_t id;
+            subscription::id_t id;
             std::type_index ti;
         };
 
@@ -181,7 +181,7 @@ namespace mpm
                 auto handlers = m_subs.equal_range(std::type_index(typeid(T)));
                 for(auto pos = handlers.first; pos != handlers.second; ++pos)
                 {
-                    const_cast<type_erased_subscriber&>(
+                    const_cast<subscription&>(
                             pos->second).deliver(m_event);
                 }
             }
@@ -277,7 +277,7 @@ namespace mpm
       private:
         using subs_multimap = std::unordered_multimap<
                                     std::type_index,
-                                    detail::type_erased_subscriber,
+                                    detail::subscription,
                                     std::hash<std::type_index>,
                                     std::equal_to<std::type_index>,
                                     allocator_type>;
@@ -340,11 +340,11 @@ namespace mpm
                 "Need noexcept handler for Event");
 
         Event* ptr {};
-        detail::type_erased_subscriber tesub = { handler, m_alloc, ptr };
+        detail::subscription sub { handler, m_alloc, ptr };
         return m_subscribers.modify([&](subs_multimap& subs) noexcept {
             auto idx = std::type_index(typeid(Event));
-            subs.emplace(idx, tesub);
-            return cookie { tesub.id(), idx };
+            subs.emplace(idx, sub);
+            return cookie { sub.id(), idx };
         });
     }
 
