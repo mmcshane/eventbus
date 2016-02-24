@@ -132,12 +132,7 @@ namespace mpm
 
         struct cookie
         {
-            //todo C++14 - can do away with ctors and use brace initialization
-            cookie()
-                : id(0)
-                , ti(std::type_index(typeid(std::nullptr_t)))
-            {
-            }
+            cookie() = default;
 
             cookie(subscription::id_t _id, std::type_index _ti)
                 : id(_id)
@@ -145,8 +140,8 @@ namespace mpm
             {
             }
 
-            subscription::id_t id;
-            std::type_index ti;
+            subscription::id_t id = 0;
+            std::type_index ti = typeid(std::nullptr_t);
         };
 
 
@@ -223,7 +218,7 @@ namespace mpm
         using allocator_type = Allocator;
 
         basic_eventbus();
-        basic_eventbus(allocator_type alloc);
+        explicit basic_eventbus(allocator_type alloc);
 
 #       ifdef DOCS
 
@@ -380,12 +375,9 @@ namespace mpm
         using event_type = Event;
 
         //! Construct a scoped_subscription not managing any subscription
-        scoped_subscription()
-            : m_ebus(nullptr)
-        {
-        }
+        scoped_subscription() = default;
 
-
+        //! Move from another scoped_subscription.
         scoped_subscription(scoped_subscription&& other)
             : m_ebus(other.m_ebus)
             , m_cookie(other.m_cookie)
@@ -393,8 +385,10 @@ namespace mpm
             other.m_ebus = nullptr;
         }
 
+        //! Copying a scoped_subscription is prohibited
         scoped_subscription(const scoped_subscription&) = delete;
 
+        //! Move-assign from another scoped_subscription
         scoped_subscription& operator=(scoped_subscription&& other)
         {
             reset();
@@ -472,7 +466,7 @@ namespace mpm
             lhs.swap(rhs);
         }
 
-        detail::unsubscribable* m_ebus; //non-owning
-        cookie m_cookie;
+        detail::unsubscribable* m_ebus = nullptr; //non-owning
+        cookie m_cookie {};
     };
 }
