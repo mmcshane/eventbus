@@ -65,14 +65,16 @@ namespace mpm
 
             template <typename E, typename H, typename Alloc>
             subscription(const H& handler, const Alloc& alloc, E*)
-                : m_self(std::allocate_shared<model<E, H>>(alloc, handler))
+                : m_self{std::allocate_shared<model<E, H>>(alloc, handler)}
             {
             }
+
 
             void deliver(const event& e)
             {
                 m_self->deliver(e);
             }
+
 
             id_t id() const
             {
@@ -164,8 +166,8 @@ namespace mpm
         struct deliver
         {
             deliver(const event& e, const SubsMap& subs)
-                : m_subs(subs)
-                , m_event(e)
+                : m_subs{subs}
+                , m_event{e}
             {
             }
 
@@ -243,7 +245,9 @@ namespace mpm
         publish(const E& event) noexcept;
 
         template <typename E>
-        typename std::enable_if<!std::is_base_of<detail::event, E>::value>::type
+        typename std::enable_if<
+            !std::is_base_of<detail::event, E>::value &&
+            std::is_nothrow_copy_constructible<E>::value>::type
         publish(const E& event) noexcept;
 
 #       endif
@@ -270,14 +274,14 @@ namespace mpm
         void unsubscribe(const cookie& c) override;
 
       private:
-        using subs_multimap = std::unordered_multimap<
-                                    std::type_index,
+        using subscriptions = leftright<
+            std::unordered_multimap<std::type_index,
                                     detail::subscription,
                                     std::hash<std::type_index>,
                                     std::equal_to<std::type_index>,
-                                    allocator_type>;
+                                    allocator_type>>;
         allocator_type m_alloc;
-        leftright<subs_multimap> m_subscribers;
+        subscriptions m_subscriptions;
     };
 
     //using eventbus = basic_eventbus<std::allocator<gsl::byte>>;
@@ -293,8 +297,8 @@ namespace mpm
 
     template <typename A>
     basic_eventbus<A>::basic_eventbus(allocator_type alloc)
-        : m_alloc(alloc)
-        , m_subscribers(in_place, alloc)
+        : m_alloc{alloc}
+        , m_subscriptions{in_place, alloc}
     {
     }
 
@@ -306,18 +310,24 @@ namespace mpm
     basic_eventbus<A>::publish(const Event& event) noexcept
     {
         using types = typename detail::dispatch_typelist<Event>::type;
-        m_subscribers.observe([&](const subs_multimap& subs){
-            for_each_type<types>(detail::deliver<decltype(subs)>(event, subs));
-        });
+        m_subscriptions.observe(
+            [&](typename subscriptions::const_reference subs){
+                for_each_type<types>(
+                        detail::deliver<decltype(subs)>(event, subs));
+            }
+        );
     }
 
 
     template <typename A>
     template <typename Event>
-    typename std::enable_if<!std::is_base_of<detail::event, Event>::value>::type
+    typename std::enable_if<
+        !std::is_base_of<detail::event, Event>::value &&
+        std::is_nothrow_copy_constructible<Event>::value>::type
     basic_eventbus<A>::publish(const Event& event) noexcept
     {
-        static_assert(std::is_class<Event>::value, "Events must be class types");
+        static_assert(std::is_class<Event>::value,
+                "Events must be class types");
         detail::adapted_event<Event> ae { event };
         publish(ae);
     }
@@ -336,11 +346,13 @@ namespace mpm
 
         Event* ptr {};
         detail::subscription sub { handler, m_alloc, ptr };
-        return m_subscribers.modify([&](subs_multimap& subs) noexcept {
-            auto idx = std::type_index(typeid(Event));
-            subs.emplace(idx, sub);
-            return cookie { sub.id(), idx };
-        });
+        return m_subscriptions.modify(
+            [&](typename subscriptions::reference subs) noexcept {
+                auto idx = std::type_index(typeid(Event));
+                subs.emplace(idx, sub);
+                return cookie { sub.id(), idx };
+            }
+        );
     }
 
 
@@ -348,17 +360,19 @@ namespace mpm
     void
     basic_eventbus<A>::unsubscribe(const cookie& c)
     {
-        m_subscribers.modify([=](subs_multimap& subs) noexcept {
-            auto range = subs.equal_range(c.ti);
-            for(auto pos = range.first; pos != range.second; ++pos)
-            {
-                if(pos->second.id() == c.id)
+        m_subscriptions.modify(
+            [=](typename subscriptions::reference subs) noexcept {
+                auto range = subs.equal_range(c.ti);
+                for(auto pos = range.first; pos != range.second; ++pos)
                 {
-                    subs.erase(pos);
-                    return;
+                    if(pos->second.id() == c.id)
+                    {
+                        subs.erase(pos);
+                        return;
+                    }
                 }
             }
-        });
+        );
     }
 
 
@@ -379,8 +393,8 @@ namespace mpm
 
         //! Move from another scoped_subscription.
         scoped_subscription(scoped_subscription&& other)
-            : m_ebus(other.m_ebus)
-            , m_cookie(other.m_cookie)
+            : m_ebus{other.m_ebus}
+            , m_cookie{other.m_cookie}
         {
             other.m_ebus = nullptr;
         }
@@ -416,8 +430,8 @@ namespace mpm
         //! \param h An instance of an event handler
         template <typename Alloc, typename Handler>
         scoped_subscription(basic_eventbus<Alloc>& ebus, const Handler& h)
-            : m_ebus(&ebus)
-            , m_cookie(ebus.template subscribe<event_type>(h))
+            : m_ebus{&ebus}
+            , m_cookie{ebus.template subscribe<event_type>(h)}
         {
         }
 
