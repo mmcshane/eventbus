@@ -3,7 +3,7 @@
 #include "mpm/polymorphic_event.hpp"
 #include "mpm/typelist.hpp"
 #include <memory>
-#include <mpm/leftright.hpp>
+#include <mpm/leftright.h>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>

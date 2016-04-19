@@ -9,6 +9,11 @@
 #include <thread>
 #include <type_traits>
 
+
+#ifndef MPM_LEFTRIGHT_CACHE_LINE_SIZE
+#   define MPM_LEFTRIGHT_CACHE_LINE_SIZE 64
+#endif
+
 namespace mpm
 {
     //! \defgroup Concepts
@@ -18,7 +23,7 @@ namespace mpm
     //! \ingroup Concepts
     //! \{
     //!
-    //! Keeps track of active readers such that it can effeciently
+    //! Keeps track of active readers such that it can efficiently
     //! indicate whether there are any active readers when queried.
     //!
     //! \par Extends
@@ -29,17 +34,16 @@ namespace mpm
     //! R, an implementation of the ReaderRegistry concept \n
     //! r, an instance of R
     //!
-    //! |Expression  | Requirements                                            | Return type                                      |
-    //! |:-----------|:--------------------------------------------------------|:-------------------------------------------------|
-    //! | R()        | R is default constructible                              | R                                                |
-    //! | r.arrive() | Notes the arival of a reader. wait-free and noexcept    |                                                  |
-    //! | r.depart() | Notes the departure of a reader. wait-free and noexcept |                                                  |
-    //! | r.empty()  | const and noexcept                                      | true if there are zero readers; false otherwise. |
+    //! |Expression  | Requirements                                             | Return type  |
+    //! |:-----------|:---------------------------------------------------------|:-------------|
+    //! | R()        | R is default constructible.                              | R            |
+    //! | r.arrive() | Notes the arival of a reader. Wait-free and noexcept.    | void         |
+    //! | r.depart() | Notes the departure of a reader. Wait-free and noexcept. | void         |
+    //! | r.empty()  | const and noexcept.    | true if there are no readers; false otherwise. |
     //! \}
 
-    struct in_place_t {};
-    constexpr in_place_t in_place{};
-
+    struct in_place_t { };
+    constexpr in_place_t in_place { };
 
     //! Wrap any single-threaded datastructure with Left-Right
     //! concurrency control
@@ -92,8 +96,11 @@ namespace mpm
             noexcept(std::is_nothrow_copy_constructible<T>::value
                     && std::is_nothrow_constructible<T, Args...>::value);
 
-        // I think all of these are implementable but I'm just focusing
-        // on the basics right now.
+        //! \internal
+        //!  Need a use-case for these. It seems that you would never want to
+        //!  move/copy/swap the full leftright instance but rather apply those
+        //!  operations to the encapsulated instance, in which case the relevant
+        //!  operation is accessed via modify()
 
         basic_leftright(const basic_leftright& other)=delete;
         basic_leftright(basic_leftright&& other)=delete;
@@ -164,8 +171,8 @@ namespace mpm
 
         std::atomic<lr> m_leftright { read_left };
 
-        T m_left alignas(64);
-        T m_right alignas(64);
+        T m_left alignas(MPM_LEFTRIGHT_CACHE_LINE_SIZE);
+        T m_right alignas(MPM_LEFTRIGHT_CACHE_LINE_SIZE);
         std::mutex m_writemutex;
     };
 
@@ -176,7 +183,7 @@ namespace mpm
     //! on a single cache line due to the use of a shared counter.
     //!
     //! \concept{ReaderRegistry}
-    class alignas(64) atomic_reader_registry
+    class alignas(MPM_LEFTRIGHT_CACHE_LINE_SIZE) atomic_reader_registry
     {
       public:
         void arrive() noexcept;
@@ -200,7 +207,7 @@ namespace mpm
     //!
     //! \concept{ReaderRegistry}
     template <std::size_t N, typename Hasher=std::hash<std::thread::id>>
-    class alignas(64) distributed_atomic_reader_registry
+    class alignas(MPM_LEFTRIGHT_CACHE_LINE_SIZE) distributed_atomic_reader_registry
     {
       public:
         void arrive() noexcept;
@@ -208,7 +215,7 @@ namespace mpm
         bool empty() const noexcept;
 
       private:
-        class alignas(64) counter
+        class alignas(MPM_LEFTRIGHT_CACHE_LINE_SIZE) counter
         {
           public:
             void incr() noexcept;
