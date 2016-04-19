@@ -72,37 +72,39 @@ Here's a quick look at publishing and subscribing to a polymorphic event
     mpm::eventbus ebus;
 
     // two subscriptions - 1 for my_base_event and 1 for my_derived_event
-    auto base_subscription_cookie = ebus.subscribe<my_base_event>(
+    auto base_subscription = scoped_subscription<my_base_event> { ebus,
         [](const my_base_event& mbe) noexcept { std::cout << "handling a base event" << mbe.x; }
     );
-    auto derived_subscription_cookie = ebus.subscribe<my_derived_event>(
+    auto derived_subscription = scoped_subscription<my_derived_event> { ebus,
         [](const my_derived_event& mde) noexcept { std::cout << "handling a derived event" << mde.y; }
     );
     
     // publish
     ebus.publish(my_derived_event{});
 
-    // unsubscribe
-    ebus.unsubscribe(base_subscription_cookie);
-    ebus.unsubscribe(derived_subscription_cookie);
-    
+    // subscriptions terminate at scope exit
+
 Some things worth noting here
 * Both event handlers will fire
 * It's generally preferable to use the provided mpm::scoped_subscription\<EventType>
-  RAII container to handle the unsubscribe call automatically. I wanted to show
-  unsubscription explicitly for this example.
+  RAII container to handle the unsubscribe call automatically. I have elided
+  unsubscription here for clarity.
+* If you have a C++14 compiler, the callback can be declared with auto (e.g.
+  const auto& event), removing the duplication in specifying the event type.
 
 For non-polymorphic dispatch, any object type can be published and it will be
-handled by handlers for that exact type.
+handled by handlers for _only_ that exact type.
 
     mpm::eventbus ebus;
 
     // two subscriptions - 1 for my_object, 1 for my_non_polymorphic_event
-    auto object_subscription_cookie = ebus.subscribe<my_object>(
-        [](const my_object& mo) noexcept { std::cout << "handling a my_object"; }
-    );
-    auto non_poly_subscription_cookie = ebus.subscribe<my_non_polymorphic_event>(
-        [](const my_non_polymorphic_event& mnpe) noexcept {
+    auto base_subscription = scoped_subscription<my_object> {
+        ebus, [](const my_object& mo) noexcept {
+            std::cout << "handling a my_object";
+        }
+    };
+    auto non_poly_subscription = scoped_subscription<my_non_polymorhpic_event> {
+        ebus, [](const my_non_polymorphic_event& mnpe) noexcept {
             std::cout << "handling a my_non_polymorphic_event " << mnpe.foo;
         }
     );
@@ -110,9 +112,7 @@ handled by handlers for that exact type.
     // publish
     ebus.publish(my_non_polymorphic_event{});
 
-    // unsubscribe
-    ebus.unsubscribe(object_subscription_cookie);
-    ebus.unsubscribe(non_poly_subscription_cookie);
+    // subscriptions terminate at scope exit
 
 Note with the above example that _only_ the handler for my_non_polymorphic_event
 will fire because the inheritance relationship was not established via
