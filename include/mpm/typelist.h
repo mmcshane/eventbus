@@ -44,7 +44,7 @@ namespace mpm
     //!
     //! \tparam TL A typelist
     //! \tparam F A FunctionObject
-    //! \param f A functory that will be called as f.template operator()<T>()
+    //! \param f A functor that will be called as f.template operator()\<T>()
     //!          where T is an element in TL. This functor will be invoked once
     //!          for each element of TL
     //! \relates typelist

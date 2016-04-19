@@ -219,7 +219,11 @@ namespace mpm
         //! The type of the Allocator used by this eventbus
         using allocator_type = Allocator;
 
+        //! Delegates to basic_eventbus(allocator_type) using
+        //! default construction for the allocator_type instance.
         basic_eventbus();
+
+        //! Constructs an instance using the supplied allocator_type.
         explicit basic_eventbus(allocator_type alloc);
 
 #       ifdef DOCS
@@ -229,9 +233,10 @@ namespace mpm
         //! The if the Event type provides a nested type called dispatch_as
         //! that is a mpm::typelist, then the supplied event instance
         //! will be delivered to event handlers registered for all of the
-        //! types in the list.
+        //! types in the list and also as E. Otherwise it will be delivered
+        //! only as E.
         //!
-        //! \tparam E Any CopyConstructible class type
+        //! \tparam E An instance of the Event concept
         //! \param event The event to publish
         //! \returns void
         template <typename E>
@@ -255,12 +260,11 @@ namespace mpm
         //! Subscribe to instances of Event
         //!
         //! The supplied handler will be invoked when events of type Event
-        //! are published or when derived classes of Event that have chosen
+        //! are published or when classes derived from Event that have chosen
         //! to enable polymorphic dispatch are published.
         //!
-        //! \tparam Event The Event type for which to subscribe
-        //! \tparam EventHandler a noexcept Unary FunctionObject such that
-        //!         handler(const Event&) is a valid expression
+        //! \tparam Event The type for which to subscribe
+        //! \tparam EventHandler an instance of the EventHandler concept
         //! \param handler An instance of EventHandler
         //! \returns A cookie which will allow for this handler to be
         //!         unsubscribed later via basic_eventbus::unsubscribe
@@ -297,7 +301,7 @@ namespace mpm
 
     template <typename A>
     basic_eventbus<A>::basic_eventbus(allocator_type alloc)
-        : m_alloc{alloc}
+        : m_alloc{ std::move(alloc) }
         , m_subscriptions{in_place, alloc}
     {
     }
@@ -392,7 +396,7 @@ namespace mpm
         scoped_subscription() = default;
 
         //! Move from another scoped_subscription.
-        scoped_subscription(scoped_subscription&& other)
+        scoped_subscription(scoped_subscription&& other) noexcept
             : m_ebus{other.m_ebus}
             , m_cookie{other.m_cookie}
         {
@@ -403,7 +407,7 @@ namespace mpm
         scoped_subscription(const scoped_subscription&) = delete;
 
         //! Move-assign from another scoped_subscription
-        scoped_subscription& operator=(scoped_subscription&& other)
+        scoped_subscription& operator=(scoped_subscription&& other) noexcept
         {
             reset();
             m_ebus = other.m_ebus;
@@ -412,7 +416,7 @@ namespace mpm
         }
 
 
-        void swap(scoped_subscription& other)
+        void swap(scoped_subscription& other) noexcept
         {
             using std::swap;
             swap(m_ebus, other.m_ebus);
