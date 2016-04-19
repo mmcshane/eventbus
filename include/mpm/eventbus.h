@@ -1,7 +1,7 @@
 #pragma once
 
-#include "mpm/polymorphic_event.hpp"
-#include "mpm/typelist.hpp"
+#include "mpm/polymorphic_event.h"
+#include "mpm/typelist.h"
 #include <memory>
 #include <mpm/leftright.h>
 #include <typeindex>

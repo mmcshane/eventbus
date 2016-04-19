@@ -1,4 +1,4 @@
-#include "mpm/eventbus.hpp"
+#include "mpm/eventbus.h"
 #include <catch.hpp>
 
 
