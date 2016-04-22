@@ -1,7 +1,7 @@
 #pragma once
 
-#include "mpm/polymorphic_event.h"
-#include "mpm/typelist.h"
+#include "mpm/enable_polymorphic_dispatch.h"
+#include "mpm/detail/typelist.h"
 #include <memory>
 #include <mpm/leftright.h>
 #include <typeindex>
@@ -91,8 +91,8 @@ namespace mpm
 
 
             // base template for events that extend detail::event (i.e. for
-            // polymorphic_events). These can be safely static_cast to the
-            // subscribed event type
+            // polymorphic dispatchable events). These can be safely
+            // static_cast to the subscribed event type
             template <typename E, typename H, typename Enable=void>
             struct model : concept
             {
@@ -107,10 +107,10 @@ namespace mpm
             };
 
 
-            // Specialization for events that do not use polymorphic_event.
-            // The diffence is that we must use *dynamic_cast* in this case as
-            // the dispatch_as event type (E) will not have detail::event as
-            // a base class
+            // Specialization for events that do not use
+            // enable_polymorphic_dispatch. The diffence is that we must use
+            // *dynamic_cast* in this case as the dispatch_as event type (E)
+            // will not have detail::event as a base class
             template <typename E, typename H>
             struct model<E, H, typename std::enable_if<
                 !std::is_base_of<detail::event, E>::value>::type> : concept
@@ -158,7 +158,7 @@ namespace mpm
             using type = typename std::conditional<
                 std::is_same<E, typename E::dispatch_as::head>::value,
                     typename E::dispatch_as,
-                    typelist<E, typename E::dispatch_as>>::type;
+                    detail::typelist<E, typename E::dispatch_as>>::type;
         };
 
 
@@ -195,7 +195,9 @@ namespace mpm
           public:
             virtual void unsubscribe(const cookie& c)=0;
           protected:
-            ~unsubscribable(){}
+            ~unsubscribable()
+            {
+            }
         };
 
 
@@ -203,8 +205,12 @@ namespace mpm
         class adapted_event : public detail::event, public Base
         {
           public:
-            using dispatch_as = typelist<Base>;
-            adapted_event(const Base& base) : Base(base) {}
+            using dispatch_as = detail::typelist<Base>;
+
+            adapted_event(const Base& base)
+                : Base(base)
+            {
+            }
         };
     }
 
@@ -230,11 +236,9 @@ namespace mpm
 
         //! Publish an instance of E.
         //!
-        //! The if the Event type provides a nested type called dispatch_as
-        //! that is a mpm::typelist, then the supplied event instance
-        //! will be delivered to event handlers registered for all of the
-        //! types in the list and also as E. Otherwise it will be delivered
-        //! only as E.
+        //! The event instance will be delivered either as only type E or
+        //! if E has been defined with mpm::enable_polymorphic_dispatch it
+        //! will be delivered as every type in its inheritance chain.
         //!
         //! \tparam E An instance of the Event concept
         //! \param event The event to publish
@@ -252,6 +256,7 @@ namespace mpm
         template <typename E>
         typename std::enable_if<
             !std::is_base_of<detail::event, E>::value &&
+            std::is_class<E>::value &&
             std::is_nothrow_copy_constructible<E>::value>::type
         publish(const E& event) noexcept;
 
@@ -316,7 +321,7 @@ namespace mpm
         using types = typename detail::dispatch_typelist<Event>::type;
         m_subscriptions.observe(
             [&](typename subscriptions::const_reference subs){
-                for_each_type<types>(
+            detail::for_each_type<types>(
                         detail::deliver<decltype(subs)>(event, subs));
             }
         );
@@ -327,13 +332,11 @@ namespace mpm
     template <typename Event>
     typename std::enable_if<
         !std::is_base_of<detail::event, Event>::value &&
+        std::is_class<Event>::value &&
         std::is_nothrow_copy_constructible<Event>::value>::type
     basic_eventbus<A>::publish(const Event& event) noexcept
     {
-        static_assert(std::is_class<Event>::value,
-                "Events must be class types");
-        detail::adapted_event<Event> ae { event };
-        publish(ae);
+        publish(detail::adapted_event<Event>{event});
     }
 
 #   endif

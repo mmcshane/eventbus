@@ -30,37 +30,42 @@ given a pair of event types called Base and Derived where Base is a base class
 of Derived, a subscription to Base event types will be invoked when an event of
 type Derived is published. This is accomplished with a slight augmentation to
 normal C++ inheritance -- Derived must extend Base via the
-mpm::polymorphic_event class rather than directly. Rather than the following
-"normal" inheritance:
+mpm::enable_polymorphic_dispatch class rather than directly. Rather than the
+following "normal" inheritance:
 
 ~~~{.cpp}
-struct Derived : Base {}
+struct Derived : Base
+{
+}
 ~~~
 
 Derived should be defined as
 
 ~~~{.cpp}
-struct Derived : mpm::polymorphic_event<Derived, Base> {}
+struct Derived : mpm::enable_polymorphic_dispatch<Derived, Base>
+{
+}
 ~~~
 
 Defining Derived in this manner will allow and event of this type to be
 delivered as both Derived and Base.
 
-It is not required that mpm::polymorphic_event be used. Any instance of a class
-type can be published, however if polymorphic delivery is desired then
-mpm::polymorphic_event must be used.
+It is not required that mpm::enable_polymorphic_dispatch be used. Any instance
+of a class type can be published, however if polymorphic delivery is desired
+then mpm::enable_polymorphic_dispatch must be used.
 
 ## Example Usage
 
 Let's define some events
 
 ~~~{.cpp}
-struct my_base_event : mpm::polymorphic_event<my_base_event>
+struct my_base_event : mpm::enable_polymorphic_dispatch<my_base_event>
 {
     int x = 12;
 };
 
-struct my_derived_event : mpm::polymorphic_event<my_derived_event, my_base_event>
+struct my_derived_event
+    : mpm::enable_polymorphic_dispatch<my_derived_event, my_base_event>
 {
     int y = 5;
 };
@@ -127,7 +132,7 @@ ebus.publish(my_non_polymorphic_event{});
 
 Note with the above example that _only_ the handler for my_non_polymorphic_event
 will fire because the inheritance relationship was not established via
-mpm::polymorphic_event.
+mpm::enable_polymorphic_dispatch.
 
 ## Building
 

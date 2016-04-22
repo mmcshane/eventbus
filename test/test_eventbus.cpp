@@ -1,14 +1,15 @@
 #include "mpm/eventbus.h"
+#include "mpm/enable_polymorphic_dispatch.h"
 #include <catch.hpp>
 
 
-struct base_event : mpm::polymorphic_event<base_event>
+struct base_event : mpm::enable_polymorphic_dispatch<base_event>
 {
     int i = 1;
 };
 
 struct derived_event
-    : mpm::polymorphic_event<derived_event, base_event>
+    : mpm::enable_polymorphic_dispatch<derived_event, base_event>
 {
     int j = 2;
 };
