@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <utility>
 
+
+//! The mpm namespace
 namespace mpm
 {
     //! \defgroup Concepts
@@ -293,7 +295,7 @@ namespace mpm
         subscriptions m_subscriptions;
     };
 
-    //using eventbus = basic_eventbus<std::allocator<gsl::byte>>;
+    //! Default eventbus uses std::allocator<char>
     using eventbus = basic_eventbus<std::allocator<char>>;
 
 
