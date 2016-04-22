@@ -51,7 +51,7 @@ Defining Derived in this manner will allow and event of this type to be
 delivered as both Derived and Base.
 
 It is not required that mpm::enable_polymorphic_dispatch be used. Any instance
-of a class type can be published, however if polymorphic delivery is desired
+of a C++ object type can be published, however if polymorphic delivery is desired
 then mpm::enable_polymorphic_dispatch must be used.
 
 ## Example Usage

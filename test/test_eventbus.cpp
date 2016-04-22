@@ -21,9 +21,19 @@ struct very_derived_event : derived_event
 };
 
 
-struct non_polymorphic_event
+class non_polymorphic_event
 {
+  public:
+    non_polymorphic_event()
+    {
+    }
+
+
     int l = 4;
+
+  private:
+    non_polymorphic_event(const non_polymorphic_event&);
+    non_polymorphic_event& operator=(const non_polymorphic_event&);
 };
 
 // todo C++14 - all event handlers can use const auto&
@@ -128,4 +138,33 @@ TEST_CASE("raii", "[mpm.eventbus]")
         //just a test that we don't segfault when destructing a
         //scoped_subscription that is "empty"
     }
+}
+
+
+TEST_CASE("publish non-class type", "[mpm.eventbus]")
+{
+    mpm::eventbus ebus;
+    int calls = 0;
+    bool b = false;
+    auto intsub = mpm::scoped_subscription<int> {
+        ebus, [&](int i) noexcept { calls += i; }
+    };
+    auto boolsub = mpm::scoped_subscription<bool> {
+        ebus, [&](bool event) noexcept { b = event; }
+    };
+    ebus.publish(12);
+    ebus.publish(true);
+    CHECK(12 == calls);
+    CHECK(b);
+}
+
+
+TEST_CASE("publish pointer", "[mpm.eventbus]")
+{
+    mpm::eventbus ebus;
+    non_polymorphic_event npe;
+    auto subscription = mpm::scoped_subscription<non_polymorphic_event*> {
+        ebus, [&](non_polymorphic_event* ptr) noexcept { CHECK(ptr == &npe); }
+    };
+    ebus.publish(&npe);
 }

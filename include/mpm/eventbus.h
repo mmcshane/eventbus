@@ -19,16 +19,16 @@ namespace mpm
     //! \ingroup Concepts
     //! \{
     //!
-    //! An instance of any class type can be published as an event. This
-    //! definition precludes the publication of (for example) an int.
+    //! An instance of any C++ object type. That is, anything but a function,
+    //! reference, or void type
     //!
     //! \par Requirements
     //! Given:\n
     //! E, an implementation of the Event concept
     //!
-    //! |Expression                      | Requirements           | Return type        |
-    //! |:-------------------------------|:-----------------------|:-------------------|
-    //! |std::is_class<E>::value == true | E must be a class type | bool, must be true |
+    //! |Expression                       | Requirements             | Return type        |
+    //! |:--------------------------------|:-------------------------|:-------------------|
+    //! |std::is_object<E>::value == true | E must be an object type | bool, must be true |
     //! \}
 
     //! \defgroup EventHandler
@@ -57,6 +57,30 @@ namespace mpm
 
     namespace detail
     {
+        //! Adapts an instance of the Event concept into the
+        //! class hierarchy rooted at mpm::detail::event
+        template <typename Event>
+        class adapted_event : public detail::event
+        {
+          public:
+            using dispatch_as = detail::typelist<Event>;
+
+            adapted_event(const Event& event)
+                : m_event{event}
+            {
+            }
+
+
+            operator const Event&() const
+            {
+                return m_event;
+            }
+
+          private:
+            const Event& m_event;
+        };
+
+
         //! Holds the subscriber event type and the handler instance
         //! in a type-erased manner so that they can be put into a
         //! homogeneous container (e.g. the std::unordered_multimap as below)
@@ -98,9 +122,13 @@ namespace mpm
             template <typename E, typename H, typename Enable=void>
             struct model : concept
             {
-                explicit model(H h) : handler(std::move(h)) { }
+                explicit model(H h)
+                    : handler(std::move(h))
+                {
+                }
 
-                void deliver(const detail::event& e) override final
+
+                void deliver(const event& e) override final
                 {
                     handler(static_cast<const E&>(e));
                 }
@@ -110,21 +138,21 @@ namespace mpm
 
 
             // Specialization for events that do not use
-            // enable_polymorphic_dispatch. The diffence is that we must use
-            // *dynamic_cast* in this case as the dispatch_as event type (E)
-            // will not have detail::event as a base class
+            // enable_polymorphic_dispatch. The diffence is that we static_cast
+            // to adapted_event<E>.
             template <typename E, typename H>
             struct model<E, H, typename std::enable_if<
                 !std::is_base_of<detail::event, E>::value>::type> : concept
             {
-                explicit model(H h) : handler(std::move(h)) { }
-
-                void deliver(const detail::event& e) override final
+                explicit model(H h)
+                    : handler(std::move(h))
                 {
-                    if(const E* ptr = dynamic_cast<const E*>(&e))
-                    {
-                        handler(*ptr);
-                    }
+                }
+
+
+                void deliver(const event& e) override final
+                {
+                    handler(static_cast<const adapted_event<E>&>(e));
                 }
 
                 H handler;
@@ -201,19 +229,6 @@ namespace mpm
             {
             }
         };
-
-
-        template <typename Base>
-        class adapted_event : public detail::event, public Base
-        {
-          public:
-            using dispatch_as = detail::typelist<Base>;
-
-            adapted_event(const Base& base)
-                : Base(base)
-            {
-            }
-        };
     }
 
     //! A small POD type representing a subscription
@@ -256,10 +271,7 @@ namespace mpm
         publish(const E& event) noexcept;
 
         template <typename E>
-        typename std::enable_if<
-            !std::is_base_of<detail::event, E>::value &&
-            std::is_class<E>::value &&
-            std::is_nothrow_copy_constructible<E>::value>::type
+        typename std::enable_if<!std::is_base_of<detail::event, E>::value>::type
         publish(const E& event) noexcept;
 
 #       endif
@@ -323,8 +335,8 @@ namespace mpm
         using types = typename detail::dispatch_typelist<Event>::type;
         m_subscriptions.observe(
             [&](typename subscriptions::const_reference subs){
-            detail::for_each_type<types>(
-                        detail::deliver<decltype(subs)>(event, subs));
+                detail::for_each_type<types>(
+                    detail::deliver<decltype(subs)>{event, subs});
             }
         );
     }
@@ -332,10 +344,7 @@ namespace mpm
 
     template <typename A>
     template <typename Event>
-    typename std::enable_if<
-        !std::is_base_of<detail::event, Event>::value &&
-        std::is_class<Event>::value &&
-        std::is_nothrow_copy_constructible<Event>::value>::type
+    typename std::enable_if<!std::is_base_of<detail::event, Event>::value>::type
     basic_eventbus<A>::publish(const Event& event) noexcept
     {
         publish(detail::adapted_event<Event>{event});
@@ -348,8 +357,8 @@ namespace mpm
     cookie
     basic_eventbus<A>::subscribe(const EventHandler& handler)
     {
-        static_assert(std::is_class<Event>::value,
-                "Events must be class types");
+        static_assert(std::is_object<Event>::value,
+                "Events must be object types");
         static_assert(noexcept(handler(std::declval<const Event&>())),
                 "Need noexcept handler for Event");
 
