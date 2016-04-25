@@ -22,8 +22,8 @@ This library is fairly small and being header-only should be easy to integrate
 into existing projects. A C++11 compiler is required. All operations are
 threadsafe -- establishing and/or ending subscriptions concurrent with event
 publication is safe for any number of threads. Moreover, event publication is
-wait-free _within the event bus_. It may be the case that event _handlers_ are not
-wait-free.
+wait-free _within the event bus_. It may be the case that event _handlers_ are
+not wait-free.
 
 Event subscriptions are aware of event-type polymorphism. That is to say that
 given a pair of event types called Base and Derived where Base is a base class
@@ -84,12 +84,14 @@ Here's a quick look at publishing and subscribing to a polymorphic event
 mpm::eventbus ebus;
 
 // two subscriptions - 1 for my_base_event and 1 for my_derived_event
+
 auto base_subscription = scoped_subscription<my_base_event> {
     ebus, [](const my_base_event& mbe) noexcept {
         std::cout << "handling a base event" << mbe.x;
     }
 );
-auto derived_subscription = scoped_subscription<my_derived_event> { ebus,
+
+auto derived_subscription = scoped_subscription<my_derived_event> {
     ebus, [](const my_derived_event& mde) noexcept {
         std::cout << "handling a derived event" << mde.y;
     }
@@ -113,11 +115,13 @@ handled by handlers for _only_ that exact type.
 mpm::eventbus ebus;
 
 // two subscriptions - 1 for my_object, 1 for my_non_polymorphic_event
+
 auto base_subscription = scoped_subscription<my_object> {
     ebus, [](const my_object& mo) noexcept {
         std::cout << "handling a my_object";
     }
 };
+
 auto non_poly_subscription = scoped_subscription<my_non_polymorhpic_event> {
     ebus, [](const my_non_polymorphic_event& mnpe) noexcept {
         std::cout << "handling a my_non_polymorphic_event " << mnpe.foo;
