@@ -85,13 +85,13 @@ mpm::eventbus ebus;
 
 // two subscriptions - 1 for my_base_event and 1 for my_derived_event
 
-auto base_subscription = scoped_subscription<my_base_event> {
+auto base_subscription = mpm::scoped_subscription<my_base_event> {
     ebus, [](const my_base_event& mbe) noexcept {
         std::cout << "handling a base event" << mbe.x;
     }
 );
 
-auto derived_subscription = scoped_subscription<my_derived_event> {
+auto derived_subscription = mpm::scoped_subscription<my_derived_event> {
     ebus, [](const my_derived_event& mde) noexcept {
         std::cout << "handling a derived event" << mde.y;
     }
@@ -116,13 +116,13 @@ mpm::eventbus ebus;
 
 // two subscriptions - 1 for my_object, 1 for my_non_polymorphic_event
 
-auto base_subscription = scoped_subscription<my_object> {
+auto base_subscription = mpm::scoped_subscription<my_object> {
     ebus, [](const my_object& mo) noexcept {
         std::cout << "handling a my_object";
     }
 };
 
-auto non_poly_subscription = scoped_subscription<my_non_polymorhpic_event> {
+auto non_poly_subscription = mpm::scoped_subscription<my_non_polymorhpic_event> {
     ebus, [](const my_non_polymorphic_event& mnpe) noexcept {
         std::cout << "handling a my_non_polymorphic_event " << mnpe.foo;
     }
