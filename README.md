@@ -145,11 +145,10 @@ want to run the unit tests or generate docs you can use the cmake build. To
 perform an out-of-tree build
 
 ~~~{.txt}
-$ cd /tmp # or wherever
-$ mkdir eventbus-debug && cd $_
-$ cmake -DCMAKE_BUILD_TYPE=debug /path/to/eventbus/repository
+$ cd "$(mktemp -d)"
+$ cmake /path/to/eventbus/repository
 $ make && make test
-$ make docs # generates doxygen documentation under /tmp/eventbus-debug/docs
+$ make docs # generates doxygen documentation under $PWD/docs
 ~~~
 
 ## TODO
