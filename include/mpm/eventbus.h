@@ -128,7 +128,7 @@ namespace mpm
                 }
 
 
-                void deliver(const event& e) override final
+                void deliver(const event& e) final
                 {
                     handler(static_cast<const E&>(e));
                 }
@@ -150,7 +150,7 @@ namespace mpm
                 }
 
 
-                void deliver(const event& e) override final
+                void deliver(const event& e) final
                 {
                     handler(static_cast<const adapted_event<E>&>(e));
                 }
