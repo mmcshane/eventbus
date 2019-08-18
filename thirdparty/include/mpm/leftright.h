@@ -344,21 +344,21 @@ namespace mpm
     }
 
 
-    void
+    inline void
     atomic_reader_registry::arrive() noexcept
     {
-        m_count.fetch_add(1, std::memory_order_release);
+        m_count.fetch_add(1, std::memory_order_acq_rel);
     }
 
 
-    void
+    inline void
     atomic_reader_registry::depart() noexcept
     {
-        m_count.fetch_sub(1, std::memory_order_release);
+        m_count.fetch_sub(1, std::memory_order_acq_rel);
     }
 
 
-    bool
+    inline bool
     atomic_reader_registry::empty() const noexcept
     {
         return 0 == m_count.load(std::memory_order_acquire);
@@ -398,7 +398,7 @@ namespace mpm
     void
     distributed_atomic_reader_registry<N, H>::counter::incr() noexcept
     {
-        (void) m_value.fetch_add(1, std::memory_order_release);
+        (void) m_value.fetch_add(1, std::memory_order_acq_rel);
     }
 
 
@@ -406,7 +406,7 @@ namespace mpm
     void
     distributed_atomic_reader_registry<N, H>::counter::decr() noexcept
     {
-        (void) m_value.fetch_sub(1, std::memory_order_release);
+        (void) m_value.fetch_sub(1, std::memory_order_acq_rel);
     }
 
 

@@ -1,6 +1,6 @@
 #include "mpm/eventbus.h"
 #include "mpm/enable_polymorphic_dispatch.h"
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 
 struct base_event : mpm::enable_polymorphic_dispatch<base_event>
